@@ -12,6 +12,7 @@ public class Main {
     public static double x = m/2;
 
 
+    // Method that executes the linear congruential calculation
     public static double randomizer(){
         x = (a * x + c) % m;
 
@@ -22,12 +23,15 @@ public class Main {
     public static void main(String[] args) throws IOException {
         int count = 100; //Amount of random generated numbers
 
+        // Starts the writer and printer
         FileWriter writer = new FileWriter("result.txt");
         PrintWriter printer = new PrintWriter(writer);
 
         for(int i = 0 ; i < count ; i++){
+            // Writes to a .txt file the results of the randomizer method
             printer.println(randomizer());
         }
+        // closes the printer and saves the file
         printer.close();
     }
 }
