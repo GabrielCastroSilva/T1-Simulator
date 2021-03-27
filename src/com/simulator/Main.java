@@ -21,7 +21,7 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        int count = 100; //Amount of random generated numbers
+        int count = 1000; //Amount of random generated numbers
 
         // Starts the writer and printer
         FileWriter writer = new FileWriter("result.txt");
@@ -29,7 +29,7 @@ public class Main {
 
         for(int i = 0 ; i < count ; i++){
             // Writes to a .txt file the results of the randomizer method
-            printer.println(randomizer());
+            printer.print(randomizer());
         }
         // closes the printer and saves the file
         printer.close();
