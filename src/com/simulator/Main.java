@@ -27,7 +27,7 @@ public class Main {
         //x = m / seeds[0];
 
 
-        int servers = 1; // How many "cashiers"
+        int servers = 2; // How many "cashiers"
         int capacity = 5; // Max possible amount in row, -1 is "infinite"
         int row = 0; // How full the row is
 
@@ -62,6 +62,7 @@ public class Main {
 
             if (events.get(lowestIndex)[0] == 0) { // Arrival
                 //System.out.println("Row: " + row + " Capacity: " + capacity);
+                time[row] += events.get(lowestIndex)[1] - globalTime;
                 if (row != capacity || capacity == -1) {
 
                     //System.out.println(row);
@@ -69,11 +70,10 @@ public class Main {
 
                     if (servers >= row) {
                         //System.out.println("ATENDIDO");
-                        servers--;
 
                         nextExit = conversion(minService, maxService, randomizer());
 
-                        time[row] += events.get(lowestIndex)[1] - globalTime;
+
                         double v = nextExit + globalTime;
                         events.add(new double[]{1, v});
                     }
@@ -97,11 +97,11 @@ public class Main {
                 //System.out.println("EXIT");
 
                 time[row] += events.get(lowestIndex)[1] - globalTime;
+                row--;
                 double v = nextExit + globalTime;
                 globalTime = events.get(lowestIndex)[1];
                 events.remove(lowestIndex);
-                row--;
-                servers++;
+
                 if (row >= servers) {
                     events.add(new double[]{1, v});
                 }
@@ -109,10 +109,18 @@ public class Main {
         }
         System.out.println("C");
 
+        int iterator = 0;
+        double totalTime = 0;
+
         for (double t : time) {
-            System.out.println(t);
+            System.out.println(iterator + " " + t);
+            iterator++;
+            totalTime += t;
         }
-        System.out.println(losses);
+
+        System.out.println("Losses: " + losses);
+        System.out.println("Total Time: " + totalTime);
+
 
 
 
