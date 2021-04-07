@@ -16,7 +16,7 @@ public class Main {
     private static int randomCount;
 
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args){
         double minArrival = 1;
         double maxArrival = 2;
 
@@ -27,7 +27,7 @@ public class Main {
         //x = m / seeds[0];
 
 
-        int servers = 2; // How many "cashiers"
+        int servers = 1; // How many "cashiers"
         int capacity = 5; // Max possible amount in row, -1 is "infinite"
         int row = 0; // How full the row is
 
@@ -48,8 +48,6 @@ public class Main {
         ArrayList<double[]> events = new ArrayList<>();  // 0 is Arrival and 1 is Exit, 1 is for time
         events.add(new double[]{0, 3.0});  // Reading is .get(listPosition)[arrayPosition]
 
-
-        System.out.println("B");
         x = m / seeds[0];
         while (randomCount != count) {
 
@@ -107,16 +105,23 @@ public class Main {
                 }
             }
         }
-        System.out.println("C");
 
         int iterator = 0;
         double totalTime = 0;
 
         for (double t : time) {
-            System.out.println(iterator + " " + t);
-            iterator++;
             totalTime += t;
         }
+
+        System.out.println("State       Time       Probability");
+
+        for (double t2 : time) {
+            double percent = (100*t2)/totalTime;
+            System.out.println(iterator + " ||| " + t2 + " ||| " + percent + " %");
+            iterator++;
+        }
+
+
 
         System.out.println("Losses: " + losses);
         System.out.println("Total Time: " + totalTime);
