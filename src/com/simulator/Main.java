@@ -17,25 +17,26 @@ public class Main {
 
 
     public static void main(String[] args){
-        double minArrival = 1;
-        double maxArrival = 2;
+        double minArrival = 2;
+        double maxArrival = 4;
 
-        double minService = 3;
-        double maxService = 6;
+        double minService = 2;
+        double maxService = 4;
 
         double[] seeds = {2.0, 2.1, 2.3, 2.2, 2.4}; // Seed number used in the randomizer
         //x = m / seeds[0];
 
 
-        int servers = 1; // How many "cashiers"
+        int servers = 4; // How many "cashiers"
         int capacity = 5; // Max possible amount in row, -1 is "infinite"
         int row = 0; // How full the row is
+
+        int loops = 5;
 
         double nextArrival = 3.0;
         double nextExit = -1;
 
         double globalTime = 0; // Time used for calculations
-        double lastTime = 0;
         int losses = 0;
 
         double[] time;
@@ -48,8 +49,10 @@ public class Main {
         ArrayList<double[]> events = new ArrayList<>();  // 0 is Arrival and 1 is Exit, 1 is for time
         events.add(new double[]{0, 3.0});  // Reading is .get(listPosition)[arrayPosition]
 
+
         x = m / seeds[0];
-        while (randomCount != count) {
+        while (randomCount <= count) {
+            //System.out.println("Random Count " + randomCount + " count " + count);
 
             int lowestIndex = 0;
             for (int j = 0; j < events.size(); j++) {
@@ -59,11 +62,10 @@ public class Main {
             }
 
             if (events.get(lowestIndex)[0] == 0) { // Arrival
-                //System.out.println("Row: " + row + " Capacity: " + capacity);
                 time[row] += events.get(lowestIndex)[1] - globalTime;
+                globalTime = events.get(lowestIndex)[1];
                 if (row != capacity || capacity == -1) {
 
-                    //System.out.println(row);
                     row++;
 
                     if (servers >= row) {
@@ -79,25 +81,20 @@ public class Main {
                 } else {
                     losses++;
                 }
-                //System.out.println("ARRIVAL");
 
+                //System.out.println("ARRIVAL");
                 nextArrival = conversion(minArrival, maxArrival, randomizer());
                 double v = nextArrival + globalTime;
-                globalTime = events.get(lowestIndex)[1];
                 events.add(new double[]{0, nextArrival + globalTime});
                 events.remove(lowestIndex);
 
-                //System.out.println(globalTime);
 
             } else {
-
-                //System.out.println("Row: " + row + " Capacity: " + capacity);
                 //System.out.println("EXIT");
-
                 time[row] += events.get(lowestIndex)[1] - globalTime;
+                globalTime = events.get(lowestIndex)[1];
                 row--;
                 double v = nextExit + globalTime;
-                globalTime = events.get(lowestIndex)[1];
                 events.remove(lowestIndex);
 
                 if (row >= servers) {
@@ -117,7 +114,8 @@ public class Main {
 
         for (double t2 : time) {
             double percent = (100*t2)/totalTime;
-            System.out.println(iterator + " ||| " + t2 + " ||| " + percent + " %");
+            //System.out.println(iterator + " ||| " + t2 + " ||| " + percent + " %");
+            System.out.printf("%d\t%.4f\t%.2f%%\n", iterator, t2, ((t2 * 100) / totalTime));
             iterator++;
         }
 
