@@ -1,16 +1,12 @@
 package com.simulator;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 public class Main {
     //Values of the congruential calculus (a * x(i) + c) % m
     private static final int a = 25173;
     private static final int c = 13849;
-    private static final int m = 32768;
+    private static final int m = 137921;
     private static final int count = 100000; //Amount of random generated numbers
     private static double x; //seed
     private static int randomCount;
@@ -23,11 +19,10 @@ public class Main {
         double minService = 3;
         double maxService = 5;
 
-        double[] seeds = {2.0, 2.1, 2.3, 2.2, 2.4}; // Seed number used in the randomizer
-        //x = m / seeds[0];
+        double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0}; // Seed number used in the randomizer
 
 
-        int servers = 2; // How many "cashiers"
+        int servers = 1; // How many "cashiers"
         int capacity = 5; // Max possible amount in row, -1 is "infinite"
         int row = 0; // How full the row is
 
@@ -52,9 +47,8 @@ public class Main {
 
         for (int i = 0; i < loops; i++) {
 
-            x = m / seeds[i];
+            x = seeds[i];
             while (randomCount <= count) {
-                //System.out.println("Random Count " + randomCount + " count " + count);
 
                 int lowestIndex = 0;
                 for (int j = 0; j < events.size(); j++) {
@@ -71,7 +65,6 @@ public class Main {
                         row++;
 
                         if (servers >= row) {
-                            //System.out.println("ATENDIDO");
 
                             nextExit = conversion(minService, maxService, randomizer());
 
@@ -84,7 +77,6 @@ public class Main {
                         losses++;
                     }
 
-                    //System.out.println("ARRIVAL");
                     nextArrival = conversion(minArrival, maxArrival, randomizer());
                     double v = nextArrival + globalTime;
                     events.add(new double[]{0, nextArrival + globalTime});
@@ -92,10 +84,10 @@ public class Main {
 
 
                 } else {
-                    //System.out.println("EXIT");
                     time[row] += events.get(lowestIndex)[1] - globalTime;
                     globalTime = events.get(lowestIndex)[1];
                     row--;
+                    nextExit = conversion(minService, maxService, randomizer());
                     double v = nextExit + globalTime;
                     events.remove(lowestIndex);
 
@@ -132,14 +124,8 @@ public class Main {
         }
 
 
-        System.out.println("Losses: " + losses);
+        System.out.println("Losses: " + losses/loops);
         System.out.println("Total Time: " + totalTime);
-
-
-
-
-
-
 
         /*for (int j = 0; j < count; j++) {
             // Writes to a .txt file the results of the randomizer method
