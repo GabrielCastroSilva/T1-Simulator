@@ -21,7 +21,6 @@ public class Main {
 
         double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0}; // Seed number used in the randomizer
 
-
         int servers = 1; // How many "cashiers"
         int capacity = 5; // Max possible amount in row, -1 is "infinite"
         int row = 0; // How full the row is
