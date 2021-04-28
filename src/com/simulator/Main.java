@@ -40,7 +40,7 @@ public class Main {
         double[][] time = new double[numberOfRows][capacity[0] + 1];
 
         ArrayList<double[]> events = new ArrayList<>();  // 0 is Arrival and 1 is Exit, 2 is for passage
-        events.add(new double[]{0, 3.0});  // Reading is .get(listPosition)[arrayPosition]
+        events.add(new double[]{0, 2.5});  // Reading is .get(listPosition)[arrayPosition]
         double totalTime = 0;
 
         for (int i = 0; i < loops; i++) {
