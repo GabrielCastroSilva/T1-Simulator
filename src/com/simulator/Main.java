@@ -1,21 +1,27 @@
 package com.simulator;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class Main {
     //Values of the congruential calculus (a * x(i) + c) % m
     private static final int a = 25173;
     private static final int c = 13849;
     private static final int m = 137921;
-    private static final int count = 100000; //Amount of random generated numbers
+    private static int count; //Amount of random generated numbers
     private static double x; //seed
     private static int randomCount;
     private static PriorityQueue<double[]> events;
+    private static List<Integer> seeds;
+    private static int loops;
+    private static Map<Integer, Double> arrivalTimes;
 
 
-    public static Row[] initializer() {
+    public static Row[] initializer() throws IOException {
          /*
         String id, // ID used for routing
         int servers,
@@ -24,25 +30,36 @@ public class Main {
         double maxService
         double[][] routing {probability, position in array of destination}
          */
-        Row r0 = new Row(0, 1, -1, 1, 1.5, new double[][]{{0.8, 1}, {0.2, 2}});  // Only first row, will receive the arrivals unless changed in the first event
-        Row r1 = new Row(1, 3, 5, 5, 10, new double[][]{{0.3, 0}, {0.5, 2}});
-        Row r2 = new Row(2, 2, 8, 10, 20, new double[][]{{0.7, 1}});
+        /*Row r0 = new Row(0, 1, -1, 1, 1.5, 1, 1.5, new double[][]{{0.8, 1}, {0.2, 2}});  // Only first row, will receive the arrivals unless changed in the first event
+        Row r1 = new Row(1, 3, 5, 5, 10, 0, 0, new double[][]{{0.3, 0}, {0.5, 2}});
+        Row r2 = new Row(2, 2, 8, 10, 20, 0, 0, new double[][]{{0.7, 1}});*/
 
-        return new Row[]{r0, r1, r2};
+        //return new Row[]{r0, r1, r2};
+
+        ObjectMapper factory = new ObjectMapper(new YAMLFactory());
+        YamlReader reader = factory.readValue(new File("model.yml"), YamlReader.class);
+
+        seeds = reader.getSeeds();
+        loops = reader.getLoops();
+        count = reader.getRndnumbersPerSeed();
+        arrivalTimes = reader.getArrivals();
+
+
+        return reader.rowsInit();
 
     }
 
 
-    public static void main(String[] args) { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
+    public static void main(String[] args) throws IOException { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
         double minArrival = 1.0;
         double maxArrival = 4.0;
 
 
         Row[] rows = initializer(); // Init for row array
 
-        double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}; // Seed number used in the randomizer
+        //double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}; // Seed number used in the randomizer
 
-        int loops = 5; // Number of times the simulation will be ran
+        //int loops = 5; // Number of times the simulation will be ran
         double nextArrival, nextExit; // Aux variables used in calculations
         double globalTime = 0; // Time used for calculations
 
@@ -61,9 +78,16 @@ public class Main {
         events = new PriorityQueue<>(comparator); // 0 is Arrival and 1 is Exit, 2 is for passage
 
         for (int i = 0; i < loops; i++) {
-            events.add(new double[]{0, 1, 0});  //First arrival //Reading is .get(listPosition)[arrayPosition]
+            //events.add(new double[]{0, 1, 0});  //First arrival //Reading is .get(listPosition)[arrayPosition]
+
+            for (Map.Entry<Integer, Double> entry : arrivalTimes.entrySet()) {
+                int pos = entry.getKey();
+                double time = entry.getValue();
+                events.add(new double[]{0, time, pos});
+            }
+
             randomCount = 0;
-            x = seeds[i];
+            x = seeds.get(i);
             while (randomCount <= count) {
 
                 double[] lowest = events.poll(); // Extracts and removes event with lowest time

@@ -6,18 +6,20 @@ import java.util.Objects;
 public class Row {
 
     private final int servers,capacity;
-    private final double minService,maxService;
+    private final double minService,maxService, minArrival, maxArrival;
     private final double[][] routing;
     private ArrayList<Double> rowTime;
     private int id;
     private int rowSize, loss;
     private double globalTime, totalTime;
 
-    public Row(int id, int servers, int capacity, double minService, double maxService, double[][] routing) {
+    public Row(int id, int servers, int capacity, double minService, double maxService, double minArrival, double maxArrival, double[][] routing) {
         this.servers = servers;
         this.capacity = capacity;
         this.minService = minService;
         this.maxService = maxService;
+        this.minArrival = minArrival;
+        this.maxArrival = maxArrival;
         this.id = id;
         this.routing = Objects.requireNonNullElseGet(routing, () -> new double[0][0]);
         rowTime = new ArrayList<>();
@@ -91,6 +93,10 @@ public class Row {
             return capacity;
         }
     }
+
+    public double getMinArrival(){return minArrival;}
+
+    public double getMaxArrival(){return maxArrival;}
 
     public int getId(){return id;}
 
