@@ -12,11 +12,12 @@ public class Main {
     private static final int count = 100000; //Amount of random generated numbers
     private static double x; //seed
     private static int randomCount;
+    private static PriorityQueue<double[]> events;
 
 
-    public static Row[] initializer(){
+    public static Row[] initializer() {
          /*
-        String id, // ID only used for print, do *NOT* mistake it for the destination in routing
+        String id, // ID used for routing
         int servers,
         int capacity,  // if -1 then its maximum integer limit (no capacity limit)
         double minService,
@@ -24,7 +25,7 @@ public class Main {
         double[][] routing {probability, position in array of destination}
          */
         Row r0 = new Row(0, 1, -1, 1, 1.5, new double[][]{{0.8, 1}, {0.2, 2}});  // Only first row, will receive the arrivals unless changed in the first event
-        Row r1 = new Row(1, 3, 5, 5, 10, new double[][]{{0.3, 0}, {0.5, 2}} );
+        Row r1 = new Row(1, 3, 5, 5, 10, new double[][]{{0.3, 0}, {0.5, 2}});
         Row r2 = new Row(2, 2, 8, 10, 20, new double[][]{{0.7, 1}});
 
         return new Row[]{r0, r1, r2};
@@ -57,7 +58,7 @@ public class Main {
             return 0;
         };
 
-        PriorityQueue<double[]> events = new PriorityQueue<>(comparator); // 0 is Arrival and 1 is Exit, 2 is for passage
+        events = new PriorityQueue<>(comparator); // 0 is Arrival and 1 is Exit, 2 is for passage
 
         for (int i = 0; i < loops; i++) {
             events.add(new double[]{0, 1, 0});  //First arrival //Reading is .get(listPosition)[arrayPosition]
@@ -70,138 +71,93 @@ public class Main {
 
                 if (lowest[0] == 0) { // Arrival
 
-                    Row row;
+                    Row row = null;
 
                     for (Row r : rows) { // Time contabilization
                         r.setTime(lowest[1] - globalTime);
+                        if (r.getId() == (int) lowest[2]) {
+                            row = r;
+                        }
                     }
-                    int position = (int) lowest[2];
 
                     globalTime = lowest[1];
 
-                    if (rows[position].getRowSize() < rows[position].getCapacity()) {
+                    assert row != null;
+                    if (row.getRowSize() < row.getCapacity()) {
 
-                        rows[position].setRowSize(+1);
+                        row.setRowSize(+1);
 
-                        if (rows[position].getRowSize() <= rows[position].getServers()) {
+                        if (row.getRowSize() <= row.getServers()) {
 
-                            nextExit = conversion(rows[position].getMinService(), rows[position].getMaxService(), randomizer());
-
-
-                            double v = nextExit + globalTime;
-
-                            int result = rows[position].getRoutings().length > 0 ? (int) rows[position].getRoutings()[0][1] : -1;
-
-                            if(rows[position].getRoutings().length > 0 && rows[position].getRoutings()[0][0] < 1.0 ){
-                                double rand = conversion(0, 1 , randomizer());
-
-                                result = rows[position].setExit(rand);
-                            }
-
-                            if (result >= 0) {
-                                events.add(new double[]{2, v, position, result});
-                            } else {
-                                events.add(new double[]{1, v, position});
-                            }
-
+                            rowProbability(row, globalTime);
 
 
                         }
 
                     } else {
-                        rows[position].setLoss();
+                        row.setLoss();
                     }
 
                     nextArrival = conversion(minArrival, maxArrival, randomizer());
 
                     double v = nextArrival + globalTime;
-                    events.add(new double[]{0, v, position});
+                    events.add(new double[]{0, v, row.getId()});
 
 
                 } else if (lowest[0] == 1) { // Exit
-                    int position = (int) lowest[2];
+                    Row row = null;
                     for (Row r : rows) {
                         r.setTime(lowest[1] - globalTime);
+                        if (r.getId() == (int) lowest[2]) {
+                            row = r;
+                        }
                     }
 
+                    assert row != null;
                     globalTime = lowest[1];
-                    rows[position].setRowSize(-1);
+                    row.setRowSize(-1);
 
-                    nextExit = conversion(rows[position].getMinService(), rows[position].getMaxService(), randomizer());
+                    nextExit = conversion(row.getMinService(), row.getMaxService(), randomizer());
 
                     double v = nextExit + globalTime;
 
 
-                    if (rows[position].getRowSize() >= rows[position].getServers()) {
-                        int result = rows[position].getRoutings().length > 0 ? (int) rows[position].getRoutings()[0][1] : -1;
-
-                        if(rows[position].getRoutings().length > 0 && rows[position].getRoutings()[0][0] < 1.0 ){
-                            double rand = conversion(0, 1 , randomizer());
-
-                            result = rows[position].setExit(rand);
-                        }
-
-                        if (result >= 0) {
-                            events.add(new double[]{2, v, position, result});
-                        } else {
-                            events.add(new double[]{1, v, position});
-                        }
+                    if (row.getRowSize() >= row.getServers()) {
+                        rowProbability(row, globalTime);
 
                     }
 
                 } else if (lowest[0] == 2) { // Passage
-                    int position = (int) lowest[2];
-                    int secondPosition = (int) lowest[3];
+                    Row row = null;
+                    Row secondRow = null;
 
                     for (Row r : rows) {
                         r.setTime(lowest[1] - globalTime);
+                        if (r.getId() == (int) lowest[2]) {
+                            row = r;
+                        }
+                        if (r.getId() == (int) lowest[3]) {
+                            secondRow = r;
+                        }
                     }
 
                     globalTime = lowest[1];
-                    rows[position].setRowSize(-1);
+                    assert row != null;
+                    row.setRowSize(-1);
 
 
-                    if (rows[position].getRowSize() >= rows[position].getServers()) {
-                        nextExit = conversion(rows[position].getMinService(), rows[position].getMaxService(), randomizer());
-
-                        double v = nextExit + globalTime;
-                        int result = rows[position].getRoutings().length > 0 ? (int) rows[position].getRoutings()[0][1] : -1;
-
-                        if(rows[position].getRoutings().length > 0 && rows[position].getRoutings()[0][0] < 1.0 ){
-                            double rand = conversion(0, 1 , randomizer());
-
-                            result = rows[position].setExit(rand);
-                        }
-
-                        if (result >= 0) {
-                            events.add(new double[]{2, v, position, result});
-                        } else {
-                            events.add(new double[]{1, v, position});
-                        }
+                    if (row.getRowSize() >= row.getServers()) {
+                        rowProbability(row, globalTime);
                     }
 
-                    if (rows[secondPosition].getRowSize() < rows[secondPosition].getCapacity()) {
-                        rows[secondPosition].setRowSize(+1);
-                        if (rows[secondPosition].getRowSize() <= rows[secondPosition].getServers()) {
-                            nextExit = conversion(rows[secondPosition].getMinService(), rows[secondPosition].getMaxService(), randomizer());
-
-                            double v = nextExit + globalTime;
-                            int result = rows[secondPosition].getRoutings().length > 0 ? (int) rows[secondPosition].getRoutings()[0][1] : -1;
-
-                            if(rows[secondPosition].getRoutings().length > 0 && rows[secondPosition].getRoutings()[0][0] < 1.0 ){
-                                double rand = conversion(0, 1 , randomizer());
-
-                                result = rows[secondPosition].setExit(rand);
-                            }
-
-                            if (result >= 0) {
-                                events.add(new double[]{2, v, secondPosition, result});
-                            } else {
-                                events.add(new double[]{1, v, secondPosition});
-                            }
+                    assert secondRow != null;
+                    if (secondRow.getRowSize() < secondRow.getCapacity()) {
+                        secondRow.setRowSize(+1);
+                        if (secondRow.getRowSize() <= secondRow.getServers()) {
+                            rowProbability(secondRow, globalTime);
                         }
                     } else {
-                        rows[secondPosition].setLoss();
+                        secondRow.setLoss();
                     }
                 }
             }
@@ -218,6 +174,26 @@ public class Main {
 
     }
 
+    public static void rowProbability(Row row, double globalTime) {
+        double nextEvent = conversion(row.getMinService(), row.getMaxService(), randomizer());
+
+        double v = nextEvent + globalTime;
+        int result = row.getRoutings().length > 0 ? (int) row.getRoutings()[0][1] : -1;
+
+        if (row.getRoutings().length > 0 && row.getRoutings()[0][0] < 1.0) {
+            double rand = conversion(0, 1, randomizer());
+
+            result = row.setExit(rand);
+        }
+
+        if (result >= 0) {
+            events.add(new double[]{2, v, row.getId(), result});
+        } else {
+            events.add(new double[]{1, v, row.getId()});
+        }
+
+    }
+
     //static double[] r = {0.9921, 0.0004, 0.5534, 0.2761, 0.3398, 0.8963, 0.9023, 0.0132, 0.4569, 0.5121, 0.9208, 0.0171, 0.2299, 0.8545, 0.6001, 0.2921};
 
     // Method that executes the linear congruential calculation
@@ -225,7 +201,7 @@ public class Main {
         randomCount++;
         x = (a * x + c) % m;
 
-        return x/m;
+        return x / m;
     }
 
     public static double conversion(double A, double B, double random) {
