@@ -1,6 +1,7 @@
 package com.simulator;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Row {
 
@@ -10,7 +11,7 @@ public class Row {
     private ArrayList<Double> rowTime;
     private int id;
     private int rowSize, loss;
-    private double globalTime;
+    private double globalTime, totalTime;
 
     public Row(int id, int servers, int capacity, double minService, double maxService, double[][] routing) {
         this.servers = servers;
@@ -18,15 +19,12 @@ public class Row {
         this.minService = minService;
         this.maxService = maxService;
         this.id = id;
-        if (routing != null && routing.length == 2 && routing[0].length == routing[1].length){
-            this.routing = routing;
-        } else {
-            this.routing = new double[2][0];
-        }
+        this.routing = Objects.requireNonNullElseGet(routing, () -> new double[0][0]);
         rowTime = new ArrayList<>();
         rowSize = 0;
         loss = 0;
         globalTime = 0.0;
+        totalTime = 0.0;
     }
 
     public void setTime(double time) {
@@ -37,16 +35,22 @@ public class Row {
         globalTime += time;
     }
 
+    public void resetRow(){
+        totalTime += globalTime;
+        globalTime = 0;
+        rowSize = 0;
+    }
+
     public void setRowSize(int extraSize) {
         rowSize += extraSize;
     }
 
     public int setExit(double random){
         double aux = 0.0;
-        for(int i = 0 ; i < routing[0].length ; i++){
-            aux += routing[i][0];
-            if(random < aux){
-                return (int) routing[i][1];
+        for (double[] doubles : routing) {
+            aux += doubles[0];
+            if (random < aux) {
+                return (int) doubles[1];
             }
         }
         return -1;
@@ -61,17 +65,19 @@ public class Row {
 /****************************************************************************/
 
 
-    public void getResults(){
+    public void getResults(int loops){
         System.out.println("Row " + id);
         for (int i = 0; i < rowTime.size(); i++) {
-            System.out.printf("%d\t%.4f\t%.2f%%\n", i, rowTime.get(i), ((rowTime.get(i) * 100) / globalTime));
+            System.out.printf("%d\t%.4f\t%.2f%%\n", i, (rowTime.get(i)/loops), (((rowTime.get(i) * 100) / totalTime)));
         }
         for (int i = rowTime.size(); i < capacity + 1; i++) {
             System.out.printf("%d\t%.4f\t%.2f%%\n", i, 0.0, 0.0);
         }
 
-        System.out.println("Loss: " + getLoss());
-        System.out.println("Total time: " + getTime() + "\n");
+        System.out.println("Loss Average: " + (this.loss/loops));
+        System.out.println("Time average of executions: " + (totalTime/loops));
+        System.out.println("Total Loss: " + (this.loss));
+        System.out.println("Total time of execution: " + totalTime + "\n");
     }
 
     public int getServers() {
@@ -84,6 +90,12 @@ public class Row {
         } else {
             return capacity;
         }
+    }
+
+    public int getId(){return id;}
+
+    public double[][] getRoutings(){
+        return routing;
     }
 
     public int getRowSize() {
