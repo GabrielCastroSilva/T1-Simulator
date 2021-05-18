@@ -94,9 +94,15 @@ public class Row {
         }
     }
 
-    public double getMinArrival(){return minArrival;}
+    public double getMinArrival(){
+        System.out.println(minArrival);
+        return minArrival;
+    }
 
-    public double getMaxArrival(){return maxArrival;}
+    public double getMaxArrival(){
+        System.out.println(maxArrival);
+        return maxArrival;
+    }
 
     public int getId(){return id;}
 

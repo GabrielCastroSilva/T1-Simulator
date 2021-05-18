@@ -51,8 +51,6 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
-        double minArrival = 1.0;
-        double maxArrival = 4.0;
 
 
         Row[] rows = initializer(); // Init for row array
@@ -60,7 +58,7 @@ public class Main {
         //double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}; // Seed number used in the randomizer
 
         //int loops = 5; // Number of times the simulation will be ran
-        double nextArrival, nextExit; // Aux variables used in calculations
+        double nextArrival, nextExit, nextPassage; // Aux variables used in calculations
         double globalTime = 0; // Time used for calculations
 
 
@@ -79,13 +77,11 @@ public class Main {
 
         for (int i = 0; i < loops; i++) {
             //events.add(new double[]{0, 1, 0});  //First arrival //Reading is .get(listPosition)[arrayPosition]
-
             for (Map.Entry<Integer, Double> entry : arrivalTimes.entrySet()) {
                 int pos = entry.getKey();
                 double time = entry.getValue();
                 events.add(new double[]{0, time, pos});
             }
-
             randomCount = 0;
             x = seeds.get(i);
             while (randomCount <= count) {
@@ -122,7 +118,7 @@ public class Main {
                         row.setLoss();
                     }
 
-                    nextArrival = conversion(minArrival, maxArrival, randomizer());
+                    nextArrival = conversion(row.getMinArrival(), row.getMaxArrival(), randomizer());
 
                     double v = nextArrival + globalTime;
                     events.add(new double[]{0, v, row.getId()});
@@ -141,9 +137,9 @@ public class Main {
                     globalTime = lowest[1];
                     row.setRowSize(-1);
 
-                    nextExit = conversion(row.getMinService(), row.getMaxService(), randomizer());
+                    nextPassage = conversion(row.getMinService(), row.getMaxService(), randomizer());
 
-                    double v = nextExit + globalTime;
+                    double v = nextPassage + globalTime;
 
 
                     if (row.getRowSize() >= row.getServers()) {
