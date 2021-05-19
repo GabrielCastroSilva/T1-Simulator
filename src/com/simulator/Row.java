@@ -8,8 +8,8 @@ public class Row {
     private final int servers,capacity;
     private final double minService,maxService, minArrival, maxArrival;
     private final double[][] routing;
-    private ArrayList<Double> rowTime;
-    private int id;
+    private final ArrayList<Double> rowTime;
+    private final int id;
     private int rowSize, loss;
     private double globalTime, totalTime;
 
@@ -21,7 +21,7 @@ public class Row {
         this.minArrival = minArrival;
         this.maxArrival = maxArrival;
         this.id = id;
-        if(routing != null){
+        if(routing != null){ //Certifies network exists
             this.routing = routing;
         } else {
             this.routing = new double[0][0];
@@ -33,7 +33,7 @@ public class Row {
         totalTime = 0.0;
     }
 
-    public void setTime(double time) {
+    public void setTime(double time) {//Updates times for row
         if(rowTime.size()<= rowSize){
             rowTime.add(0.0);
         }
@@ -51,7 +51,7 @@ public class Row {
         rowSize += extraSize;
     }
 
-    public int setExit(double random){
+    public int setPassage(double random){//Decide which route will be chosen
         double aux = 0.0;
         for (double[] doubles : routing) {
             aux += doubles[0];
@@ -71,7 +71,7 @@ public class Row {
 /****************************************************************************/
 
 
-    public void getResults(int loops){
+    public void getResults(int loops){ //Prints all details from row
         System.out.println("Row " + id);
         for (int i = 0; i < rowTime.size(); i++) {
             System.out.printf("%d\t%.4f\t%.2f%%\n", i, (rowTime.get(i)/loops), (((rowTime.get(i) * 100) / totalTime)));

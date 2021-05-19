@@ -14,10 +14,10 @@ public class Main {
     private static final int m = 137921;
     private static int count; //Amount of random generated numbers
     private static double x; //seed
-    private static int randomCount;
+    private static int randomCount; //Number to break while loop
     private static PriorityQueue<double[]> events;
     private static List<Integer> seeds;
-    private static int loops;
+    private static int loops; //Number of times that the simulation will run
     private static Map<Integer, Double> arrivalTimes;
 
 
@@ -27,35 +27,29 @@ public class Main {
         int servers,
         int capacity,  // if -1 then its maximum integer limit (no capacity limit)
         double minService,
-        double maxService
+        double maxService,
+        double minArrival,
+        double maxArrival,
         double[][] routing {probability, position in array of destination}
          */
-        /*Row r0 = new Row(0, 1, -1, 1, 1.5, 1, 1.5, new double[][]{{0.8, 1}, {0.2, 2}});  // Only first row, will receive the arrivals unless changed in the first event
-        Row r1 = new Row(1, 3, 5, 5, 10, 0, 0, new double[][]{{0.3, 0}, {0.5, 2}});
-        Row r2 = new Row(2, 2, 8, 10, 20, 0, 0, new double[][]{{0.7, 1}});*/
 
-        //return new Row[]{r0, r1, r2};
+        ObjectMapper factory = new ObjectMapper(new YAMLFactory()); //Loads Jackson Yaml methods
+        YamlReader reader = factory.readValue(new File(fileName), YamlReader.class); //Read the file using YamlReader class
 
-        ObjectMapper factory = new ObjectMapper(new YAMLFactory());
-        YamlReader reader = factory.readValue(new File(fileName), YamlReader.class);
-
+        //Loads values in variables
         seeds = reader.getSeeds();
         loops = reader.getLoops();
         count = reader.getRndnumbersPerSeed();
         arrivalTimes = reader.getArrivals();
 
-
-        return reader.rowsInit();
+        return reader.rowsInit(); //executes rowsInit method
 
     }
 
 
     public static void main(String[] args) throws IOException { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
-        Row[] rows = initializer(args[0]); // Init for row array
+        Row[] rows = initializer("model.yml"); // Init for row array
 
-        //double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}; // Seed number used in the randomizer
-
-        //int loops = 5; // Number of times the simulation will be ran
         double nextArrival, nextExit, nextPassage; // Aux variables used in calculations
         double globalTime = 0; // Time used for calculations
 
@@ -74,11 +68,11 @@ public class Main {
         events = new PriorityQueue<>(comparator); // 0 is Arrival and 1 is Exit, 2 is for passage
 
         for (int i = 0; i < loops; i++) {
-            //events.add(new double[]{0, 1, 0});  //First arrival //Reading is .get(listPosition)[arrayPosition]
-            for (Map.Entry<Integer, Double> entry : arrivalTimes.entrySet()) {
+
+            for (Map.Entry<Integer, Double> entry : arrivalTimes.entrySet()) { //Populates event list with initial arrivals
                 int pos = entry.getKey();
                 double time = entry.getValue();
-                events.add(new double[]{0, time, pos});
+                events.add(new double[]{0, time, pos}); //First arrival //Reading is .get(listPosition)[arrayPosition]
             }
             randomCount = 0;
             x = seeds.get(i);
@@ -98,18 +92,15 @@ public class Main {
                         }
                     }
 
-                    globalTime = lowest[1];
+                    globalTime = lowest[1]; //Updates globalTime
 
                     assert row != null;
-                    if (row.getRowSize() < row.getCapacity()) {
+                    if (row.getRowSize() < row.getCapacity()) { //Checks if there is capacity for an arrival
 
                         row.setRowSize(+1);
 
-                        if (row.getRowSize() <= row.getServers()) {
-
+                        if (row.getRowSize() <= row.getServers()) { //Checks if an event can be scheduled
                             rowProbability(row, globalTime);
-
-
                         }
 
                     } else {
@@ -124,7 +115,7 @@ public class Main {
 
                 } else if (lowest[0] == 1) { // Exit
                     Row row = null;
-                    for (Row r : rows) {
+                    for (Row r : rows) { //Time contabilization
                         r.setTime(lowest[1] - globalTime);
                         if (r.getId() == (int) lowest[2]) {
                             row = r;
@@ -135,11 +126,6 @@ public class Main {
                     globalTime = lowest[1];
                     row.setRowSize(-1);
 
-                    nextPassage = conversion(row.getMinService(), row.getMaxService(), randomizer());
-
-                    double v = nextPassage + globalTime;
-
-
                     if (row.getRowSize() >= row.getServers()) {
                         rowProbability(row, globalTime);
 
@@ -149,7 +135,7 @@ public class Main {
                     Row row = null;
                     Row secondRow = null;
 
-                    for (Row r : rows) {
+                    for (Row r : rows) { //Time contabilization
                         r.setTime(lowest[1] - globalTime);
                         if (r.getId() == (int) lowest[2]) {
                             row = r;
@@ -164,14 +150,14 @@ public class Main {
                     row.setRowSize(-1);
 
 
-                    if (row.getRowSize() >= row.getServers()) {
+                    if (row.getRowSize() >= row.getServers()) { //Checks if first row can have an event
                         rowProbability(row, globalTime);
                     }
 
                     assert secondRow != null;
-                    if (secondRow.getRowSize() < secondRow.getCapacity()) {
+                    if (secondRow.getRowSize() < secondRow.getCapacity()) { //Checks if second row can receive an appointment
                         secondRow.setRowSize(+1);
-                        if (secondRow.getRowSize() <= secondRow.getServers()) {
+                        if (secondRow.getRowSize() <= secondRow.getServers()) { //Checks if a second row can receive an event
                             rowProbability(secondRow, globalTime);
                         }
                     } else {
@@ -179,7 +165,7 @@ public class Main {
                     }
                 }
             }
-            events = new PriorityQueue<>(comparator);
+            events = new PriorityQueue<>(comparator); //Empties events queue
             for (Row r : rows) {
                 r.resetRow();
             }
@@ -192,32 +178,41 @@ public class Main {
 
     }
 
+
     public static void rowProbability(Row row, double globalTime) {
-        double nextEvent = conversion(row.getMinService(), row.getMaxService(), randomizer());
+        double nextEvent = conversion(row.getMinService(), row.getMaxService(), randomizer()); //Generates next random number
 
         double v = nextEvent + globalTime;
-        int result = row.getRoutings().length > 0 ? (int) row.getRoutings()[0][1] : -1;
+        int result;
 
-        if (row.getRoutings().length > 0 && row.getRoutings()[0][0] < 1.0) {
+        if (row.getRoutings().length > 0) { //Decides if event will be a passage or an exit
+            result = (int) row.getRoutings()[0][1]; //Exit
+        } else {
+            result = -1; //Passage
+        }
+
+        if (row.getRoutings().length > 0 && row.getRoutings()[0][0] < 1.0) { //If passage generate number to decide which row to go
             double rand = conversion(0, 1, randomizer());
 
-            result = row.setExit(rand);
+            result = row.setPassage(rand);
         }
 
         if (result >= 0) {
-            events.add(new double[]{2, v, row.getId(), result});
+            events.add(new double[]{2, v, row.getId(), result}); //Passage
         } else {
-            events.add(new double[]{1, v, row.getId()});
+            events.add(new double[]{1, v, row.getId()}); //Exit
         }
 
     }
 
     //static double[] r = {0.9921, 0.0004, 0.5534, 0.2761, 0.3398, 0.8963, 0.9023, 0.0132, 0.4569, 0.5121, 0.9208, 0.0171, 0.2299, 0.8545, 0.6001, 0.2921};
 
-    // Method that executes the linear congruential calculation
+    //Method that executes the linear congruential calculation
     public static double randomizer() {
         randomCount++;
         x = (a * x + c) % m;
+
+        //return r[randomCount];
 
         return x / m;
     }
