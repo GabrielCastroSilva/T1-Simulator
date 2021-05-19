@@ -20,7 +20,6 @@ public class Main {
     private static int loops; //Number of times that the simulation will run
     private static Map<Integer, Double> arrivalTimes;
 
-
     public static Row[] initializer(String fileName) throws IOException {
          /*
         String id, // ID used for routing
@@ -43,16 +42,13 @@ public class Main {
         arrivalTimes = reader.getArrivals();
 
         return reader.rowsInit(); //executes rowsInit method
-
     }
 
-
     public static void main(String[] args) throws IOException { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
-        Row[] rows = initializer("model.yml"); // Init for row array
+        Row[] rows = initializer(args[0]); // Init for row array
 
         double nextArrival, nextExit, nextPassage; // Aux variables used in calculations
         double globalTime = 0; // Time used for calculations
-
 
         Comparator<double[]> comparator = (event1, event2) -> { // Comparator for event times(earliest/lowest takes priority)
             double aux = event1[1] - event2[1];
@@ -74,7 +70,7 @@ public class Main {
                 double time = entry.getValue();
                 events.add(new double[]{0, time, pos}); //First arrival //Reading is .get(listPosition)[arrayPosition]
             }
-            randomCount = 0;
+            randomCount = -1;
             x = seeds.get(i);
             while (randomCount <= count) {
 
@@ -101,6 +97,9 @@ public class Main {
 
                         if (row.getRowSize() <= row.getServers()) { //Checks if an event can be scheduled
                             rowProbability(row, globalTime);
+                            /*if(randomCount == r.length - 1){
+                                break;
+                            }*/
                         }
 
                     } else {
@@ -108,6 +107,9 @@ public class Main {
                     }
 
                     nextArrival = conversion(row.getMinArrival(), row.getMaxArrival(), randomizer());
+                    /*if(randomCount == r.length - 1){
+                        break;
+                    }*/
 
                     double v = nextArrival + globalTime;
                     events.add(new double[]{0, v, row.getId()});
@@ -128,6 +130,9 @@ public class Main {
 
                     if (row.getRowSize() >= row.getServers()) {
                         rowProbability(row, globalTime);
+                        /*if(randomCount == r.length - 1){
+                            break;
+                        }*/
 
                     }
 
@@ -152,6 +157,9 @@ public class Main {
 
                     if (row.getRowSize() >= row.getServers()) { //Checks if first row can have an event
                         rowProbability(row, globalTime);
+                        /*if(randomCount == r.length - 1){
+                            break;
+                        }*/
                     }
 
                     assert secondRow != null;
@@ -159,6 +167,9 @@ public class Main {
                         secondRow.setRowSize(+1);
                         if (secondRow.getRowSize() <= secondRow.getServers()) { //Checks if a second row can receive an event
                             rowProbability(secondRow, globalTime);
+                            /*if(randomCount == r.length - 1){
+                                break;
+                            }*/
                         }
                     } else {
                         secondRow.setLoss();
@@ -180,9 +191,6 @@ public class Main {
 
 
     public static void rowProbability(Row row, double globalTime) {
-        double nextEvent = conversion(row.getMinService(), row.getMaxService(), randomizer()); //Generates next random number
-
-        double v = nextEvent + globalTime;
         int result;
 
         if (row.getRoutings().length > 0) { //Decides if event will be a passage or an exit
@@ -193,9 +201,15 @@ public class Main {
 
         if (row.getRoutings().length > 0 && row.getRoutings()[0][0] < 1.0) { //If passage generate number to decide which row to go
             double rand = conversion(0, 1, randomizer());
+            /*if(randomCount == r.length - 1){
+                return;
+            }*/
 
             result = row.setPassage(rand);
         }
+
+        double nextEvent = conversion(row.getMinService(), row.getMaxService(), randomizer()); //Generates next random number
+        double v = nextEvent + globalTime;
 
         if (result >= 0) {
             events.add(new double[]{2, v, row.getId(), result}); //Passage
@@ -206,6 +220,7 @@ public class Main {
     }
 
     //static double[] r = {0.9921, 0.0004, 0.5534, 0.2761, 0.3398, 0.8963, 0.9023, 0.0132, 0.4569, 0.5121, 0.9208, 0.0171, 0.2299, 0.8545, 0.6001, 0.2921};
+    //public static double[] r = {0.3281, 0.1133, 0.3332, 0.5634, 0.1099, 0.1221, 0.7271, 0.0301, 0.8291, 0.3131, 0.5232, 0.7291, 0.9129, 0.8723, 0.4101, 0.2209};
 
     //Method that executes the linear congruential calculation
     public static double randomizer() {
@@ -213,7 +228,6 @@ public class Main {
         x = (a * x + c) % m;
 
         //return r[randomCount];
-
         return x / m;
     }
 

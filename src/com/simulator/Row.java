@@ -34,7 +34,7 @@ public class Row {
     }
 
     public void setTime(double time) {//Updates times for row
-        if(rowTime.size()<= rowSize){
+        if(rowTime.size() <= rowSize){
             rowTime.add(0.0);
         }
         rowTime.set(rowSize, rowTime.get(rowSize) + time);
