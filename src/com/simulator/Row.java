@@ -21,7 +21,11 @@ public class Row {
         this.minArrival = minArrival;
         this.maxArrival = maxArrival;
         this.id = id;
-        this.routing = Objects.requireNonNullElseGet(routing, () -> new double[0][0]);
+        if(routing != null){
+            this.routing = routing;
+        } else {
+            this.routing = new double[0][0];
+        }
         rowTime = new ArrayList<>();
         rowSize = 0;
         loss = 0;
@@ -95,12 +99,10 @@ public class Row {
     }
 
     public double getMinArrival(){
-        System.out.println(minArrival);
         return minArrival;
     }
 
     public double getMaxArrival(){
-        System.out.println(maxArrival);
         return maxArrival;
     }
 

@@ -21,7 +21,7 @@ public class Main {
     private static Map<Integer, Double> arrivalTimes;
 
 
-    public static Row[] initializer() throws IOException {
+    public static Row[] initializer(String fileName) throws IOException {
          /*
         String id, // ID used for routing
         int servers,
@@ -37,7 +37,7 @@ public class Main {
         //return new Row[]{r0, r1, r2};
 
         ObjectMapper factory = new ObjectMapper(new YAMLFactory());
-        YamlReader reader = factory.readValue(new File("model.yml"), YamlReader.class);
+        YamlReader reader = factory.readValue(new File(fileName), YamlReader.class);
 
         seeds = reader.getSeeds();
         loops = reader.getLoops();
@@ -51,9 +51,7 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
-
-
-        Row[] rows = initializer(); // Init for row array
+        Row[] rows = initializer(args[0]); // Init for row array
 
         //double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}; // Seed number used in the randomizer
 
