@@ -1,170 +1,233 @@
 package com.simulator;
 
-import java.util.ArrayList;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class Main {
     //Values of the congruential calculus (a * x(i) + c) % m
     private static final int a = 25173;
     private static final int c = 13849;
     private static final int m = 137921;
-    private static final int count = 100000; //Amount of random generated numbers
+    private static int count; //Amount of random generated numbers
     private static double x; //seed
-    private static int randomCount;
+    private static int randomCount; //Number to break while loop
+    private static PriorityQueue<double[]> events;
+    private static List<Integer> seeds;
+    private static int loops; //Number of times that the simulation will run
+    private static Map<Integer, Double> arrivalTimes;
 
+    public static Row[] initializer(String fileName) throws IOException {
+         /*
+        String id, // ID used for routing
+        int servers,
+        int capacity,  // if -1 then its maximum integer limit (no capacity limit)
+        double minService,
+        double maxService,
+        double minArrival,
+        double maxArrival,
+        double[][] routing {probability, position in array of destination}
+         */
 
-    public static void main(String[] args) { // G/G/2/3   Distribuicao geometrica na chegada e atendimento com 2 server 3 capacity
-        double[] minArrival = {2};
-        double[] maxArrival = {3};
+        ObjectMapper factory = new ObjectMapper(new YAMLFactory()); //Loads Jackson Yaml methods
+        YamlReader reader = factory.readValue(new File(fileName), YamlReader.class); //Read the file using YamlReader class
 
-        double[] minService = {2,3};
-        double[] maxService = {5,5};
+        //Loads values in variables
+        seeds = reader.getSeeds();
+        loops = reader.getLoops();
+        count = reader.getRndnumbersPerSeed();
+        arrivalTimes = reader.getArrivals();
 
-        double[] seeds = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}; // Seed number used in the randomizer
+        return reader.rowsInit(); //executes rowsInit method
+    }
 
+    public static void main(String[] args) throws IOException { // G/G/2/3   Geometric distribution of arrival and attendance with 2 server 3 capacity
+        Row[] rows = initializer(args[0]); // Init for row array
 
-        int[] servers = {2,1}; // How many "cashiers"
-        int[] capacity = {3,3}; // Max possible amount in row, -1 is "infinite"
-        int[] row = {0,0}; // How full the row is
-
-        int loops = 5;
-
-        double nextArrival = 3.0;
-        double nextExit = -1;
-
+        double nextArrival, nextExit, nextPassage; // Aux variables used in calculations
         double globalTime = 0; // Time used for calculations
 
+        Comparator<double[]> comparator = (event1, event2) -> { // Comparator for event times(earliest/lowest takes priority)
+            double aux = event1[1] - event2[1];
+            if (aux < 0) {
+                return -1;
+            }
+            if (aux > 0) {
+                return 1;
+            }
+            return 0;
+        };
 
-
-        int numberOfRows = 2;
-        int[] losses = new int[numberOfRows];
-        double[][] time = new double[numberOfRows][capacity[0] + 1];
-
-        ArrayList<double[]> events = new ArrayList<>();  // 0 is Arrival and 1 is Exit, 2 is for passage
-        events.add(new double[]{0, 2.5});  // Reading is .get(listPosition)[arrayPosition]
-        double totalTime = 0;
+        events = new PriorityQueue<>(comparator); // 0 is Arrival and 1 is Exit, 2 is for passage
 
         for (int i = 0; i < loops; i++) {
 
-            x = seeds[i];
+            for (Map.Entry<Integer, Double> entry : arrivalTimes.entrySet()) { //Populates event list with initial arrivals
+                int pos = entry.getKey();
+                double time = entry.getValue();
+                events.add(new double[]{0, time, pos}); //First arrival //Reading is .get(listPosition)[arrayPosition]
+            }
+            randomCount = -1;
+            x = seeds.get(i);
             while (randomCount <= count) {
 
-                int lowestIndex = 0;
-                for (int j = 0; j < events.size(); j++) {
-                    if (events.get(lowestIndex)[1] > events.get(j)[1]) {
-                        lowestIndex = j;
+                double[] lowest = events.poll(); // Extracts and removes event with lowest time
+                assert lowest != null; // In case it breaks
+
+                if (lowest[0] == 0) { // Arrival
+
+                    Row row = null;
+
+                    for (Row r : rows) { // Time contabilization
+                        r.setTime(lowest[1] - globalTime);
+                        if (r.getId() == (int) lowest[2]) {
+                            row = r;
+                        }
                     }
-                }
 
-                if (events.get(lowestIndex)[0] == 0) { // Arrival
-                    time[0][row[0]] += events.get(lowestIndex)[1] - globalTime;
-                    time[1][row[1]] += events.get(lowestIndex)[1] - globalTime;
-                    globalTime = events.get(lowestIndex)[1];
-                    if (row[0] < capacity[0]) {
+                    globalTime = lowest[1]; //Updates globalTime
 
-                        row[0]++;
+                    assert row != null;
+                    if (row.getRowSize() < row.getCapacity()) { //Checks if there is capacity for an arrival
 
-                        if (row[0] <= servers[0]) {
+                        row.setRowSize(+1);
 
-                            nextExit = conversion(minService[0], maxService[0], randomizer());
-
-                            double v = nextExit + globalTime;
-                            events.add(new double[]{2, v});
+                        if (row.getRowSize() <= row.getServers()) { //Checks if an event can be scheduled
+                            rowProbability(row, globalTime);
+                            /*if(randomCount == r.length - 1){
+                                break;
+                            }*/
                         }
 
                     } else {
-                        losses[0]++;
+                        row.setLoss();
                     }
 
-                    nextArrival = conversion(minArrival[0], maxArrival[0], randomizer());
+                    nextArrival = conversion(row.getMinArrival(), row.getMaxArrival(), randomizer());
+                    /*if(randomCount == r.length - 1){
+                        break;
+                    }*/
+
                     double v = nextArrival + globalTime;
-                    events.add(new double[]{0, v});
-                    events.remove(lowestIndex);
+                    events.add(new double[]{0, v, row.getId()});
 
 
-                } else if(events.get(lowestIndex)[0] == 1) { // Exit
-                    time[0][row[0]] += events.get(lowestIndex)[1] - globalTime;
-                    time[1][row[1]] += events.get(lowestIndex)[1] - globalTime;
-                    globalTime = events.get(lowestIndex)[1];
-                    row[1]--;
-                    nextExit = conversion(minService[1], maxService[1], randomizer());
-                    double v = nextExit + globalTime;
-                    events.remove(lowestIndex);
-
-                    if (row[1] >= servers[1]) {
-                        events.add(new double[]{1, v});
+                } else if (lowest[0] == 1) { // Exit
+                    Row row = null;
+                    for (Row r : rows) { //Time contabilization
+                        r.setTime(lowest[1] - globalTime);
+                        if (r.getId() == (int) lowest[2]) {
+                            row = r;
+                        }
                     }
-                } else if(events.get(lowestIndex)[0] == 2) { // Passage
-                    time[0][row[0]] += events.get(lowestIndex)[1] - globalTime;
-                    time[1][row[1]] += events.get(lowestIndex)[1] - globalTime;
-                    row[0]--;
-                    globalTime = events.get(lowestIndex)[1];
-                    events.remove(lowestIndex);
 
-                    if(row[0] >= servers[0]){
-                        nextExit = conversion(minService[0], maxService[0], randomizer());
-                        double v = nextExit + globalTime;
-                        events.add(new double[]{2, v});
+                    assert row != null;
+                    globalTime = lowest[1];
+                    row.setRowSize(-1);
+
+                    if (row.getRowSize() >= row.getServers()) {
+                        rowProbability(row, globalTime);
+                        /*if(randomCount == r.length - 1){
+                            break;
+                        }*/
+
                     }
-                    if(row[1] < capacity[1]){
-                        row[1]++;
-                        if(row[1] <= servers[1]){
-                            nextExit = conversion(minService[1], maxService[1], randomizer());
-                            double v = nextExit + globalTime;
-                            events.add(new double[]{1, v});
+
+                } else if (lowest[0] == 2) { // Passage
+                    Row row = null;
+                    Row secondRow = null;
+
+                    for (Row r : rows) { //Time contabilization
+                        r.setTime(lowest[1] - globalTime);
+                        if (r.getId() == (int) lowest[2]) {
+                            row = r;
+                        }
+                        if (r.getId() == (int) lowest[3]) {
+                            secondRow = r;
+                        }
+                    }
+
+                    globalTime = lowest[1];
+                    assert row != null;
+                    row.setRowSize(-1);
+
+
+                    if (row.getRowSize() >= row.getServers()) { //Checks if first row can have an event
+                        rowProbability(row, globalTime);
+                        /*if(randomCount == r.length - 1){
+                            break;
+                        }*/
+                    }
+
+                    assert secondRow != null;
+                    if (secondRow.getRowSize() < secondRow.getCapacity()) { //Checks if second row can receive an appointment
+                        secondRow.setRowSize(+1);
+                        if (secondRow.getRowSize() <= secondRow.getServers()) { //Checks if a second row can receive an event
+                            rowProbability(secondRow, globalTime);
+                            /*if(randomCount == r.length - 1){
+                                break;
+                            }*/
                         }
                     } else {
-                        losses[1]++;
+                        secondRow.setLoss();
                     }
-
-
                 }
             }
-
-            randomCount = 0;
-            events = new ArrayList<>();
-            events.add(new double[]{0, 3.0});
-            row[0] = 0;
-            row[1] = 0;
+            events = new PriorityQueue<>(comparator); //Empties events queue
+            for (Row r : rows) {
+                r.resetRow();
+            }
             globalTime = 0;
-
         }
 
-        int iterator = 0;
-        for(int z = 0; z< numberOfRows ; z++){
-            totalTime = 0;
-            for(int t = 0 ; t < time[z].length ; t++){
-                totalTime += time[z][t];
-            }
-
-            totalTime /= loops;
-
-
-            System.out.println("State       Time       Probability");
-
-            for(int t2 = 0; t2 < time[z].length ; t2++){
-                double percent = (100 * time[z][t2]) / totalTime;
-                System.out.printf("%d\t%.4f\t%.2f%%\n", t2, (time[z][t2]/loops), ((time[z][t2] * 100) / totalTime)/loops);
-            }
-
-
-
-            System.out.println("Losses: " + losses[z]/loops);
-            System.out.println("Total Time: " + totalTime);
+        for (Row r : rows) {
+            r.getResults(loops);
         }
 
-
-        /*for (int j = 0; j < count; j++) {
-            // Writes to a .txt file the results of the randomizer method
-            System.out.println(randomizer());
-
-        }*/
     }
 
-    // Method that executes the linear congruential calculation
+
+    public static void rowProbability(Row row, double globalTime) {
+        int result;
+
+        if (row.getRoutings().length > 0) { //Decides if event will be a passage or an exit
+            result = (int) row.getRoutings()[0][1]; //Exit
+        } else {
+            result = -1; //Passage
+        }
+
+        if (row.getRoutings().length > 0 && row.getRoutings()[0][0] < 1.0) { //If passage generate number to decide which row to go
+            double rand = conversion(0, 1, randomizer());
+            /*if(randomCount == r.length - 1){
+                return;
+            }*/
+
+            result = row.setPassage(rand);
+        }
+
+        double nextEvent = conversion(row.getMinService(), row.getMaxService(), randomizer()); //Generates next random number
+        double v = nextEvent + globalTime;
+
+        if (result >= 0) {
+            events.add(new double[]{2, v, row.getId(), result}); //Passage
+        } else {
+            events.add(new double[]{1, v, row.getId()}); //Exit
+        }
+
+    }
+
+    //static double[] r = {0.9921, 0.0004, 0.5534, 0.2761, 0.3398, 0.8963, 0.9023, 0.0132, 0.4569, 0.5121, 0.9208, 0.0171, 0.2299, 0.8545, 0.6001, 0.2921};
+    //public static double[] r = {0.3281, 0.1133, 0.3332, 0.5634, 0.1099, 0.1221, 0.7271, 0.0301, 0.8291, 0.3131, 0.5232, 0.7291, 0.9129, 0.8723, 0.4101, 0.2209};
+
+    //Method that executes the linear congruential calculation
     public static double randomizer() {
         randomCount++;
         x = (a * x + c) % m;
 
+        //return r[randomCount];
         return x / m;
     }
 
